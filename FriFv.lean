@@ -8,7 +8,7 @@ import Mathlib.Algebra.Polynomial.FieldDivision
 
 variable {F: Type} [Field F] [Finite F] [DecidableEq F]
 
-noncomputable def fₑ (f : Polynomial F) (D : Fˣ -> Prop) : Polynomial F :=
+noncomputable def fₑ (f : Polynomial F) : Polynomial F :=
   match f.degree with
   | none => 0
   | some n =>
@@ -16,10 +16,19 @@ noncomputable def fₑ (f : Polynomial F) (D : Fˣ -> Prop) : Polynomial F :=
     let minusX := -X
     (Polynomial.mul'.mul (Polynomial.C (2⁻¹ : F)) (f.comp X + f.comp minusX))
 
-noncomputable def fₒ (f : Polynomial F) (D : Fˣ -> Prop) : Polynomial F :=
+noncomputable def fₒ (f : Polynomial F) : Polynomial F :=
   match f.degree with
   | none => 0
   | some n =>
     let X := Polynomial.X
     let minusX := -X
     (Polynomial.mul'.mul (Polynomial.C (2⁻¹ : F)) (f.comp X - f.comp minusX)) /ₘ X
+
+lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} : fₑ f + X * fₒ f = f := by
+   unfold fₑ fₒ
+   generalize h : f.degree = d
+   rcases d with ⟨_ | d⟩ <;> simp
+   symm
+   rw [←Polynomial.degree_eq_bot]
+   aesop
+   sorry
