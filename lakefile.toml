@@ -1,0 +1,20 @@
+name = "fri-fv"
+version = "0.1.0"
+defaultTargets = ["fri-fv"]
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.18.0-rc1"
+
+[[require]]
+name = "VCVio"
+git = "https://github.com/dtumad/VCV-io.git"
+rev = "master"
+
+[[lean_lib]]
+name = "FriFv"
+
+[[lean_exe]]
+name = "fri-fv"
+root = "Main"
