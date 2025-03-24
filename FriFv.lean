@@ -19,10 +19,9 @@ noncomputable def fₑ (f : Polynomial F) : Polynomial F :=
 noncomputable def fₒ (f : Polynomial F) : Polynomial F :=
   match f.degree with
   | none => 0
-  | some n =>
+  | some _ =>
     let X := Polynomial.X
-    let minusX := -X
-    (Polynomial.mul'.mul (Polynomial.C (2⁻¹ : F)) (f.comp X - f.comp minusX)) /ₘ X
+    ((Polynomial.C (2⁻¹ : F)) * (f.comp X - f.comp (-X))) /ₘ (2 * X)
 
 lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} : fₑ f + X * fₒ f = f := by
    unfold fₑ fₒ
@@ -32,3 +31,14 @@ lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} : fₑ f + X * fₒ f = f := 
    rw [←Polynomial.degree_eq_bot]
    aesop
    sorry
+
+variable (fₑ_x : Polynomial F → Polynomial F)
+variable (fₒ_x : Polynomial F → Polynomial F)
+
+lemma fₑ_is_even {f : Polynomial F} : fₑ f = (fₑ_x f).comp (Polynomial.X * Polynomial.X) := by
+  sorry
+
+lemma fₒ_is_even {f : Polynomial F} : fₒ f = (fₒ_x f).comp (Polynomial.X * Polynomial.X) := by
+  sorry
+
+noncomputable def foldα (f : Polynomial F) (α : F) : Polynomial F := (fₑ_x f) + (Polynomial.C α) * (fₒ_x f)
