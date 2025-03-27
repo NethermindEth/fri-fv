@@ -42,3 +42,11 @@ lemma fₒ_is_even {f : Polynomial F} : fₒ f = (fₒ_x f).comp (Polynomial.X *
   sorry
 
 noncomputable def foldα (f : Polynomial F) (α : F) : Polynomial F := (fₑ_x f) + (Polynomial.C α) * (fₒ_x f)
+
+noncomputable def line_through_two_points (a₀ a₁ : F × F) : Polynomial F :=
+  let x₀ := a₀.1
+  let y₀ := a₀.2
+  let x₁ := a₁.1
+  let y₁ := a₁.2
+  let m := (y₁ - y₀) / (x₁ - x₀)
+  Polynomial.C m * Polynomial.X + Polynomial.C (y₀ - m * x₀)
