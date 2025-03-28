@@ -50,3 +50,13 @@ noncomputable def line_through_two_points (a₀ a₁ : F × F) : Polynomial F :=
   let y₁ := a₁.2
   let m := (y₁ - y₀) / (x₁ - x₀)
   Polynomial.C m * Polynomial.X + Polynomial.C (y₀ - m * x₀)
+
+noncomputable def consistency_check (x₀ : F) (s₀ s₁ : F) (α₀ α₁ β : F) : Bool :=
+  let p := line_through_two_points (s₀, α₀) (s₁, α₁)
+  let p_x₀ := p.eval x₀
+  p_x₀ == β
+
+lemma consistency_check_comp { f : Polynomial F }  {x₀ : F} {s₀ s₁ : F} {α₀ α₁ β : F} { h₁ : s₀ * s₀ = s₁ * s₁ }
+  { h₂ : f.eval s₀ = α₀ } {h₃ : f.eval s₁ = α₁ } { h₄ : Polynomial.eval (s₀ * s₀) (foldα fₑ fₒ f x₀)= β } :
+  consistency_check x₀ s₀ s₁ α₀ α₁ β = true := by
+  sorry
