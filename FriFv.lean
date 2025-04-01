@@ -56,7 +56,24 @@ noncomputable def consistency_check (x₀ : F) (s₀ s₁ : F) (α₀ α₁ β :
   let p_x₀ := p.eval x₀
   p_x₀ == β
 
-lemma consistency_check_comp { f : Polynomial F }  {x₀ : F} {s₀ s₁ : F} {α₀ α₁ β : F} { h₁ : s₀ * s₀ = s₁ * s₁ }
-  { h₂ : f.eval s₀ = α₀ } {h₃ : f.eval s₁ = α₁ } { h₄ : Polynomial.eval (s₀ * s₀) (foldα fₑ fₒ f x₀)= β } :
+lemma consistency_check_comp { f : Polynomial F }  {x₀ : F} {y : F} {s₀ s₁ : F} {α₀ α₁ β : F} { h₁ : s₀ * s₀ = s₁ * s₁ }
+  { h₂ : f.eval s₀ = α₀ } {h₃ : f.eval s₁ = α₁ } { h₄ : Polynomial.eval y (foldα fₑ fₒ f x₀)= β }
+  { h₅ : s₀ * s₀ = y } :
   consistency_check x₀ s₀ s₁ α₀ α₁ β = true := by
-  sorry
+  unfold consistency_check line_through_two_points
+  simp
+  rw [←h₂, ←h₃, ←h₄]
+  unfold foldα
+  rw [←h₅]
+  ring_nf
+  rw [Polynomial.eval_add]
+  simp only [Polynomial.eval_mul, Polynomial.eval_C]
+  have hh : (s₀ ^ 2 = Polynomial.eval s₀ (Polynomial.X * Polynomial.X)) := by
+    simp
+    ring_nf
+  rw [hh]
+  rw [←Polynomial.eval_comp, ←Polynomial.eval_comp, ←fₑ_is_even (fₑ), ←fₒ_is_even (fₒ)]
+  have hhh {s : F} : Polynomial.eval s f = Polynomial.eval s (fₑ f + Polynomial.X * (fₒ f)) := by
+    rw [fₑ_plus_x_mul_fₒ_eq_f]
+  rw [hhh]
+  simp only [Polynomial.eval_add, Polynomial.eval_mul, Polynomial.eval_X]
