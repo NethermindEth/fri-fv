@@ -92,7 +92,7 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
   simp only [map_sub, map_mul, Polynomial.X_mul_C]
   apply Polynomial.ext
   intro n
-  rcases n with ⟨_ | n⟩ <;> simp
+  rcases n with _ | n <;> simp
   · rw [←h₂, ←h₃, fₑ_x_eval]
     have hhh : Polynomial.eval s₀ f - (Polynomial.eval s₁ f - Polynomial.eval s₀ f) / (s₁ - s₀) * s₀ =
       ((s₁ - s₀ ) * Polynomial.eval s₀ f - s₀ * (Polynomial.eval s₁ f - Polynomial.eval s₀ f)) / (s₁ - s₀) := by
@@ -113,7 +113,8 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
     rw [fₑ_is_even' (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
     ring_nf 
     sorry 
-  · sorry
+  · rw [←h₂, ←h₃, fₒ_x_eval]
+    sorry 
 
 
 
