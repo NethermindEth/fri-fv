@@ -113,9 +113,18 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
     rw [fₑ_is_even' (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
     ring_nf 
     sorry 
-  · rw [←h₂, ←h₃, fₒ_x_eval]
-    sorry 
-
+  · rcases n with _ | n <;> simp
+    rw [←h₂, ←h₃, fₒ_x_eval]
+    rw [div_eq_iff]
+    conv => 
+      lhs
+      rw [←fₑ_plus_x_mul_fₒ_eq_f (f := f)]
+    simp only [Polynomial.eval_add, Polynomial.eval_mul, Polynomial.eval_X]
+    ring_nf
+    rw [fₑ_is_even' (s₀ := s₀) (s₁ := s₁) (h := h₁)]
+    ring_nf 
+    rw [fₒ_is_even' (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
+    sorry
 
 
 lemma consistency_check_comp { f : Polynomial F }  {x₀ : F} {y : F} {s₀ s₁ : F} {α₀ α₁ β : F} { h₁ : s₀ * s₀ = s₁ * s₁ }
