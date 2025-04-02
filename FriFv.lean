@@ -11,11 +11,11 @@ variable {F: Type} [Field F] [Finite F] [DecidableEq F]
 noncomputable def fₑ (f : Polynomial F) : Polynomial F :=
     let X := Polynomial.X
     let minusX := -X
-    ((Polynomial.C (2⁻¹ : F)) * (f.comp X + f.comp minusX))
+    Polynomial.C (2⁻¹ : F) * (f.comp X + f.comp minusX)
 
 noncomputable def fₒ (f : Polynomial F) : Polynomial F :=
     let X := Polynomial.X
-    ((Polynomial.C (2⁻¹ : F)) * (f.comp X - f.comp (-X))) /ₘ (2 * X)
+    Polynomial.C (2⁻¹ : F) * (f.comp X - f.comp (-X)) /ₘ X
 
 lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} : fₑ f + Polynomial.X * fₒ f = f := by
    unfold fₑ fₒ
