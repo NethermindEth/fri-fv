@@ -33,25 +33,25 @@ section
 opaque fₑ_x : Polynomial F → Polynomial F := sorry
 opaque fₒ_x : Polynomial F → Polynomial F := sorry
 
-lemma fₑ_is_even {f : Polynomial F} : fₑ f = (fₑ_x f).comp (Polynomial.X * Polynomial.X) := by
+lemma fₑ_x_is_a_subst_of_fₑ {f : Polynomial F} : fₑ f = (fₑ_x f).comp (Polynomial.X * Polynomial.X) := by
   sorry
 
-lemma fₒ_is_even {f : Polynomial F} : fₒ f = (fₒ_x f).comp (Polynomial.X * Polynomial.X) := by
+lemma fₒ_x_is_a_subst_of_fₑ {f : Polynomial F} : fₒ f = (fₒ_x f).comp (Polynomial.X * Polynomial.X) := by
   sorry
 
 lemma fₑ_x_eval {f : Polynomial F} {x : F} : Polynomial.eval (x ^ 2) (fₑ_x f) = Polynomial.eval x (fₑ f) := by
   have hh : Polynomial.eval (x ^ 2) (fₑ_x f) = Polynomial.eval (x) ((fₑ_x f).comp (Polynomial.X * Polynomial.X)) := by
     simp only [Polynomial.eval_comp, Polynomial.eval_mul, Polynomial.eval_X]
     ring_nf
-  rw [hh, ←fₑ_is_even]
+  rw [hh, ←fₑ_x_is_a_subst_of_fₑ]
 
 lemma fₒ_x_eval {f : Polynomial F} {x : F} : Polynomial.eval (x ^ 2) (fₒ_x f) = Polynomial.eval x (fₒ f) := by
   have hh : Polynomial.eval (x ^ 2) (fₒ_x f) = Polynomial.eval (x) ((fₒ_x f).comp (Polynomial.X * Polynomial.X)) := by
     simp only [Polynomial.eval_comp, Polynomial.eval_mul, Polynomial.eval_X]
     ring_nf
-  rw [hh, ←fₒ_is_even]
+  rw [hh, ←fₒ_x_is_a_subst_of_fₑ]
 
-lemma fₑ_is_even' {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } :
+lemma fₑ_is_even {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } :
   Polynomial.eval s₀ (fₑ f) = Polynomial.eval s₁ (fₑ f) := by
     rw [←fₑ_x_eval, ←fₑ_x_eval]
     have hhh : s₀^2 = s₁ ^ 2 := by
@@ -173,7 +173,7 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
     ring_nf
     rw [fₒ_is_even' (s₀ := s₀) (s₁ := s₁) (h := h₁)]
     ring_nf
-    rw [fₑ_is_even' (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
+    rw [fₑ_is_even (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
     ring_nf
     intro contr
     have hhh : s₁ = s₀ := by
@@ -190,7 +190,7 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
       rw [←fₑ_plus_x_mul_fₒ_eq_f (f := f)]
     simp only [Polynomial.eval_add, Polynomial.eval_mul, Polynomial.eval_X]
     ring_nf
-    rw [fₑ_is_even' (s₀ := s₀) (s₁ := s₁) (h := h₁)]
+    rw [fₑ_is_even (s₀ := s₀) (s₁ := s₁) (h := h₁)]
     ring_nf
     rw [fₒ_is_even' (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
     intro contr
