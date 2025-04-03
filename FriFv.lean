@@ -54,8 +54,9 @@ lemma fₒ_x_eval {f : Polynomial F} {x : F} : Polynomial.eval (x ^ 2) (fₒ_x f
 lemma fₑ_is_even' {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } : 
   Polynomial.eval s₀ (fₑ f) = Polynomial.eval s₁ (fₑ f) := by
     rw [←fₑ_x_eval, ←fₑ_x_eval]
-    have hhh : s₀^2 = s₁ ^ 2 := by 
-      sorry
+    have hhh : s₀^2 = s₁ ^ 2 := by
+      convert h <;> ring
+    
     rw [hhh]
 
 
