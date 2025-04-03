@@ -51,19 +51,19 @@ lemma fₒ_x_eval {f : Polynomial F} {x : F} : Polynomial.eval (x ^ 2) (fₒ_x f
     ring_nf
   rw [hh, ←fₒ_is_even]
 
-lemma fₑ_is_even' {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } : 
+lemma fₑ_is_even' {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } :
   Polynomial.eval s₀ (fₑ f) = Polynomial.eval s₁ (fₑ f) := by
     rw [←fₑ_x_eval, ←fₑ_x_eval]
-    have hhh : s₀^2 = s₁ ^ 2 := by 
-      sorry
+    have hhh : s₀^2 = s₁ ^ 2 := by
+        convert h <;> ring
     rw [hhh]
 
 
-lemma fₒ_is_even' {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } : 
+lemma fₒ_is_even' {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } :
   Polynomial.eval s₀ (fₒ f) = Polynomial.eval s₁ (fₒ f) := by
     rw [←fₒ_x_eval, ←fₒ_x_eval]
-    have hhh : s₀^2 = s₁ ^ 2 := by 
-      sorry
+    have hhh : s₀^2 = s₁ ^ 2 := by
+        convert h <;> ring
     rw [hhh]
 
 end
@@ -83,6 +83,23 @@ noncomputable def consistency_check (x₀ : F) (s₀ s₁ : F) (α₀ α₁ β :
   let p_x₀ := p.eval x₀
   p_x₀ == β
 
+lemma the_glorious_lemma {x y : F} (z : F) (h : z ≠ 0) (h₁ : z * x = z * y ) : x = y := by
+  have hh : x = 1 * x := by ring_nf
+  rw [hh]
+  have hh : y = 1 * y := by ring_nf
+  rw [hh]
+  have hh : 1 = z * z⁻¹ := by
+    rw [Field.mul_inv_cancel]
+    exact h
+  conv =>
+    lhs
+    rw [hh, mul_comm z, mul_assoc, h₁]
+    rfl
+  conv =>
+    rhs
+    rw [hh, mul_comm z, mul_assoc,]
+    rfl
+
 lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ α₁ : F} { h₁ : s₀ * s₀ = s₁ * s₁ }
   { h₂ : f.eval s₀ = α₀ } {h₃ : f.eval s₁ = α₁ } {h₄ : s₀ ≠ s₁ }
    :
@@ -95,37 +112,94 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
   rcases n with _ | n <;> simp
   · rw [←h₂, ←h₃, fₑ_x_eval]
     have hhh : Polynomial.eval s₀ f - (Polynomial.eval s₁ f - Polynomial.eval s₀ f) / (s₁ - s₀) * s₀ =
-      ((s₁ - s₀ ) * Polynomial.eval s₀ f - s₀ * (Polynomial.eval s₁ f - Polynomial.eval s₀ f)) / (s₁ - s₀) := by
-        sorry
-    rw [hhh]
-    rw [div_eq_iff]
+      ((s₁ - s₀ ) * Polynomial.eval s₀ f - s₀ * (Polynomial.eval s₁ f - Polynomial.eval s₀ f)) / (s₁ - s₀)
+      := by
+      have hhh : (s₁ - s₀) * (Polynomial.eval s₀ f - (Polynomial.eval s₁ f - Polynomial.eval s₀ f) / (s₁ - s₀) * s₀) = (s₁ - s₀) *
+  ((s₁ - s₀) * Polynomial.eval s₀ f - s₀ * (Polynomial.eval s₁ f - Polynomial.eval s₀ f)) / (s₁ - s₀)  :=
+    by {
+        rw [div_eq_mul_inv, div_eq_mul_inv]
+        conv =>
+          rhs
+          rw [mul_comm]
+          rw [←mul_assoc, ←mul_comm (a := s₁ - s₀) (b := (s₁ - s₀)⁻¹) ]
+          rw [Field.mul_inv_cancel _ (by {
+          intro contr
+          have hhh : s₁ = s₀ := by
+            have hhh : s₀ = s₀ + 0 := by
+              ring_nf
+            rw [hhh, ←contr]
+            ring_nf
+          aesop
+          })]
+          rfl
+        simp only [one_mul]
+        conv =>
+          lhs
+          rw [mul_sub]
+          congr
+          rfl
+          rw [mul_comm _ (s₁ - s₀)⁻¹]
+          rw [←mul_assoc (s₁ - s₀), ←mul_assoc (s₁ - s₀)]
+          rw [Field.mul_inv_cancel _ (by {
+            intro contr
+            have hhh : s₁ = s₀ := by
+              have hhh : s₀ = s₀ + 0 := by
+               ring_nf
+              rw [hhh, ←contr]
+              ring_nf
+            aesop
+          })]
+        ring
+      }
+      apply (the_glorious_lemma (s₁ - s₀))
+      · intro contr
+        have hhh : s₁ = s₀ := by
+          have hhh : s₀ = s₀ + 0 := by
+            ring_nf
+          rw [hhh, ←contr]
+          ring_nf
+        aesop
+      · rw [hhh]
+        ring_nf
+    rw [hhh, div_eq_iff]
     ring_nf
-    have hhh : s₁ * Polynomial.eval s₀ f - s₀ * Polynomial.eval s₁ f = 
+    have hhh : s₁ * Polynomial.eval s₀ f - s₀ * Polynomial.eval s₁ f =
       s₁ * Polynomial.eval s₀ (fₑ f + Polynomial.X * ( fₒ f )) - s₀ * Polynomial.eval s₁ ( fₑ f + Polynomial.X * ( fₒ f ) ) := by
       conv =>
         lhs
-        rw [←fₑ_plus_x_mul_fₒ_eq_f (f := f)] 
-    rw [hhh] 
+        rw [←fₑ_plus_x_mul_fₒ_eq_f (f := f)]
+    rw [hhh]
     simp only [Polynomial.eval_add, Polynomial.eval_mul, Polynomial.eval_X]
     ring_nf
     rw [fₒ_is_even' (s₀ := s₀) (s₁ := s₁) (h := h₁)]
-    ring_nf  
+    ring_nf
     rw [fₑ_is_even' (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
-    ring_nf 
-    sorry 
+    ring_nf
+    intro contr
+    have hhh : s₁ = s₀ := by
+      have hhh : s₀ = s₀ + 0 := by
+        ring_nf
+      rw [hhh, ←contr]
+      ring_nf
+    aesop
   · rcases n with _ | n <;> simp
     rw [←h₂, ←h₃, fₒ_x_eval]
     rw [div_eq_iff]
-    conv => 
+    conv =>
       lhs
       rw [←fₑ_plus_x_mul_fₒ_eq_f (f := f)]
     simp only [Polynomial.eval_add, Polynomial.eval_mul, Polynomial.eval_X]
     ring_nf
     rw [fₑ_is_even' (s₀ := s₀) (s₁ := s₁) (h := h₁)]
-    ring_nf 
+    ring_nf
     rw [fₒ_is_even' (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
-    sorry
-
+    intro contr
+    have hhh : s₁ = s₀ := by
+      have hhh : s₀ = s₀ + 0 := by
+        ring_nf
+      rw [hhh, ←contr]
+      ring_nf
+    aesop
 
 lemma consistency_check_comp { f : Polynomial F }  {x₀ : F} {y : F} {s₀ s₁ : F} {α₀ α₁ β : F} { h₁ : s₀ * s₀ = s₁ * s₁ }
   { h₂ : f.eval s₀ = α₀ } {h₃ : f.eval s₁ = α₁ } { h₄ : Polynomial.eval y (foldα f x₀)= β }
@@ -146,4 +220,4 @@ lemma consistency_check_comp { f : Polynomial F }  {x₀ : F} {y : F} {s₀ s₁
   rw [←h₅]
   ring_nf
   exact h₃
-  exact h₆  
+  exact h₆
