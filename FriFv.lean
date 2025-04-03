@@ -10,12 +10,69 @@ variable {F: Type} [Field F] [Finite F] [DecidableEq F]
 
 noncomputable def fₑ (f : Polynomial F) : Polynomial F :=
     let X := Polynomial.X
-    let minusX := -X
-    Polynomial.C (2⁻¹ : F) * (f.comp X + f.comp minusX)
+    Polynomial.C (2⁻¹ : F) * (f.comp X + f.comp (-X))
 
 noncomputable def fₒ (f : Polynomial F) : Polynomial F :=
     let X := Polynomial.X
     Polynomial.C (2⁻¹ : F) * (f.comp X - f.comp (-X)) /ₘ X
+
+def erase_odd' (s : Finset ℕ) (n : ℕ) : Finset ℕ := 
+  match n with 
+  | 0 => s.erase 0
+  | n + 1 => if n % 2 == 0 then erase_odd' (s.erase (n+1)) n else erase_odd' s n 
+
+def erase_odd (s : Finset ℕ) : Finset ℕ :=
+  let max := s.max 
+  match max with
+  | ⊥ => s 
+  | some max => erase_odd' s max
+
+lemma erase_odd'_is_subset_of_s {s : Finset ℕ} {d : ℕ} {n : ℕ} {hmem : n ∈ erase_odd' s d } : n ∈ s := by
+  induction d with 
+  | zero => 
+    simp [erase_odd'] at hmem
+    rcases n <;> aesop 
+  | succ d ih => 
+    simp [erase_odd'] at hmem
+    
+     
+
+
+lemma erase_odd'_odd_mem {s : Finset ℕ} {n : ℕ} {h : Odd n} {d : ℕ} {h_le : n ≤ d} :
+    n ∉ erase_odd' s d := by
+  revert n s 
+  induction d with 
+  | zero => 
+    simp [erase_odd']
+    aesop 
+  | succ d ih => 
+    simp [erase_odd']
+    intros s n h h_le 
+    by_cases hd : d % 2 = 0
+    · simp [hd]
+      rcases h_le with h_le | h_le 
+      · sorry 
+      · intro contr 
+        aesop 
+
+lemma erase_odd_odd_mem {s : Finset ℕ} {n : ℕ} {h : Odd n} : n ∉ (erase_odd s) := by
+  generalize hmax : s.max = max 
+  rcases max with _ | d <;> simp [erase_odd]
+  · have hbot : none = (⊥ : WithBot ℕ) := by rfl
+    rw [hbot, Finset.max_eq_bot] at hmax
+    simp [hmax]
+  · simp [hmax]
+
+    
+
+    
+
+
+noncomputable def fₑ' (f : Polynomial F) : Polynomial F :=
+  match f with
+  | ⟨⟨supp, f, pr⟩⟩ => ⟨⟨erase_odd supp, fun n => if n % 2 == 0 then f n else 0, by {
+    
+  }⟩⟩  
 
 lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} : fₑ f + Polynomial.X * fₒ f = f := by
    unfold fₑ fₒ
