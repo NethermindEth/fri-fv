@@ -18,7 +18,7 @@ noncomputable def fₒ (f : Polynomial F) : Polynomial F :=
 
 def erase_odd' (s : Finset ℕ) (n : ℕ) : Finset ℕ := 
   match n with 
-  | 0 => s.erase 0
+  | 0 => s
   | n + 1 => if n % 2 == 0 then erase_odd' (s.erase (n+1)) n else erase_odd' s n 
 
 def erase_odd (s : Finset ℕ) : Finset ℕ :=
@@ -28,15 +28,29 @@ def erase_odd (s : Finset ℕ) : Finset ℕ :=
   | some max => erase_odd' s max
 
 lemma erase_odd'_is_subset_of_s {s : Finset ℕ} {d : ℕ} {n : ℕ} {hmem : n ∈ erase_odd' s d } : n ∈ s := by
+  revert s
   induction d with 
   | zero => 
+    intro s hmem 
     simp [erase_odd'] at hmem
     rcases n <;> aesop 
   | succ d ih => 
+    intro s hmem 
     simp [erase_odd'] at hmem
-    
-     
+    by_cases hd : d % 2 = 0
+    · rw [hd] at hmem 
+      simp at hmem 
+      specialize (@ih (s.erase (d+1)) hmem)  
+      aesop 
+    · aesop 
 
+lemma erase_odd_is_subset_of_s {s : Finset ℕ} {n : ℕ} {hmem : n ∈ erase_odd s } : n ∈ s := by
+  simp [erase_odd] at hmem  
+  generalize h : s.max = max 
+  rcases max 
+  · aesop 
+  · apply erase_odd'_is_subset_of_s
+    aesop 
 
 lemma erase_odd'_odd_mem {s : Finset ℕ} {n : ℕ} {h : Odd n} {d : ℕ} {h_le : n ≤ d} :
     n ∉ erase_odd' s d := by
@@ -47,13 +61,68 @@ lemma erase_odd'_odd_mem {s : Finset ℕ} {n : ℕ} {h : Odd n} {d : ℕ} {h_le 
     aesop 
   | succ d ih => 
     simp [erase_odd']
-    intros s n h h_le 
+    intros s n h h_le  
     by_cases hd : d % 2 = 0
     · simp [hd]
       rcases h_le with h_le | h_le 
-      · sorry 
       · intro contr 
+        have h :=erase_odd'_is_subset_of_s (s := s.erase (d+1)) (hmem := contr)
         aesop 
+      · intro contr 
+        have hh :=erase_odd'_is_subset_of_s (s := s.erase (d+1)) (hmem := contr)
+        aesop 
+    · rcases h_le with h_le | h_le 
+      · unfold Odd at h 
+        rcases h with ⟨k, h⟩
+        have h : d = 2 * k := by aesop 
+        aesop 
+      · aesop 
+
+lemma erase_odd'_bound {s : Finset ℕ} {n : ℕ} {d : ℕ} {h_gt : n > d} {hmem : n ∈ s } : 
+    n ∈ erase_odd' s d := by 
+    revert s n 
+    induction d with 
+    | zero => 
+      simp [erase_odd']
+    | succ d ih =>
+      intro s n h_gt hmem 
+      simp [erase_odd']
+      by_cases hd : d % 2 = 0 
+      · rw [hd] 
+        simp 
+        apply ih <;> try omega 
+        aesop 
+      · aesop 
+        apply ih <;> try omega 
+        tauto 
+
+lemma erase_odd'_even_mem {s : Finset ℕ} {n : ℕ} {h : Even n} {d : ℕ} {h_le : n ≤ d} {h_mem : n ∈ s } : n ∈ erase_odd' s d  
+      := by
+  revert n s 
+  induction d with 
+  | zero => 
+    simp [erase_odd']
+  | succ d ih => 
+    simp [erase_odd']
+    intros s n h h_le h_mem
+    by_cases hd : d % 2 = 0
+    · simp [hd]
+      rcases h_le with h_le | h_le 
+      · unfold Even at h 
+        rcases h with ⟨k, h⟩ 
+        have hhh : (d+1) % 2 = 0 := by 
+          have hhh : k + k = 2 * k := by omega 
+          aesop 
+        have hhh : d % 2 + 1 = 0 := by omega 
+        omega 
+      · apply ih <;> try tauto 
+        simp [erase_odd']
+        aesop 
+    · rcases h_le with h_le | h_le 
+      · aesop 
+        apply erase_odd'_bound <;> try omega 
+        tauto 
+      · aesop  
 
 lemma erase_odd_odd_mem {s : Finset ℕ} {n : ℕ} {h : Odd n} : n ∉ (erase_odd s) := by
   generalize hmax : s.max = max 
@@ -62,11 +131,49 @@ lemma erase_odd_odd_mem {s : Finset ℕ} {n : ℕ} {h : Odd n} : n ∉ (erase_od
     rw [hbot, Finset.max_eq_bot] at hmax
     simp [hmax]
   · simp [hmax]
+    by_cases hn : n ≤ d 
+    · apply erase_odd'_odd_mem <;> try tauto 
+    · intro contr 
+      have hhh := erase_odd'_is_subset_of_s (s := s) (d := d) (n := n) (hmem := contr)
+      aesop 
+      have hhhh := Finset.le_max hhh 
+      rw [hmax] at hhhh 
+      have hhhh : n ≤ d := by
+        rw [WithBot.le_def] at hhhh 
+        specialize (hhhh n) 
+        simp at hhhh 
+        aesop 
+        have hw : some d = some w := by 
+          rw [left] 
+          rfl 
+        rw [Option.some_inj] at hw 
+        omega 
+      omega 
 
-    
-
-    
-
+lemma erase_odd_even_mem {s : Finset ℕ} {n : ℕ} {he : Even n} : n ∈ (erase_odd s) ↔ n ∈ s := by 
+  apply Iff.intro <;> intro h 
+  · apply erase_odd_is_subset_of_s 
+    tauto 
+  · unfold erase_odd 
+    generalize hmax : s.max = max 
+    rcases max with _ | max 
+    · simp [h]
+    · simp 
+      by_cases hle : n ≤ max 
+      · apply erase_odd'_even_mem <;> try tauto 
+      · aesop 
+        have hhhh := Finset.le_max h
+        have hhhh : n ≤ max := by
+          rw [WithBot.le_def] at hhhh 
+          specialize (hhhh n) 
+          simp at hhhh 
+          aesop   
+          have hw : some max = some w := by 
+            rw [left] 
+            rfl 
+          rw [Option.some_inj] at hw 
+          omega 
+        omega 
 
 noncomputable def fₑ' (f : Polynomial F) : Polynomial F :=
   match f with
