@@ -124,6 +124,7 @@ lemma erase_odd'_even_mem {s : Finset ℕ} {n : ℕ} {h : Even n} {d : ℕ} {h_l
         tauto 
       · aesop  
 
+
 lemma erase_odd_odd_mem {s : Finset ℕ} {n : ℕ} {h : Odd n} : n ∉ (erase_odd s) := by
   generalize hmax : s.max = max 
   rcases max with _ | d <;> simp [erase_odd]
@@ -175,10 +176,22 @@ lemma erase_odd_even_mem {s : Finset ℕ} {n : ℕ} {he : Even n} : n ∈ (erase
           omega 
         omega 
 
+lemma erase_odd_contains_only_even {s : Finset ℕ} {n : ℕ} {h : n ∈ (erase_odd s) } : Even n := by
+  have hpar := Nat.even_or_odd n
+  rcases hpar with hpar | hpar <;> try tauto 
+  have hh := @erase_odd_odd_mem s n hpar 
+  tauto 
+
 noncomputable def fₑ' (f : Polynomial F) : Polynomial F :=
   match f with
   | ⟨⟨supp, f, pr⟩⟩ => ⟨⟨erase_odd supp, fun n => if n % 2 == 0 then f n else 0, by {
-    
+    intro a 
+    apply Iff.intro <;> intro h 
+    · simp 
+      apply And.intro 
+      · generalize hmod : a % 2 = m 
+        
+      
   }⟩⟩  
 
 lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} : fₑ f + Polynomial.X * fₒ f = f := by
