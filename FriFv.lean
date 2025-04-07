@@ -700,6 +700,11 @@ lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} {hchar : (2 : F) ≠ 0} : f�
 
 section
 
+def divide_by_2' (s : Finset ℕ) (acc : Finset ℕ) (n : ℕ) : Finset ℕ := 
+  match n with 
+  | 0 => acc 
+  | n + 1 => if 2 * n ∈ s then divide_by_2' s (insert n acc) n else divide_by_2' s acc n
+
 opaque fₑ_x : Polynomial F → Polynomial F := sorry
 opaque fₒ_x : Polynomial F → Polynomial F := sorry
 
