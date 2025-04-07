@@ -5,6 +5,7 @@ import Mathlib.Algebra.Field.Basic
 import Mathlib.Algebra.Polynomial.Basic
 import Mathlib.Algebra.Polynomial.Degree.Definitions
 import Mathlib.Algebra.Polynomial.FieldDivision
+import Mathlib.Data.Finset.Insert
 
 variable {F: Type} [Field F] [Finite F] [DecidableEq F]
 
@@ -26,6 +27,17 @@ def erase_odd (s : Finset ℕ) : Finset ℕ :=
   match max with
   | ⊥ => s 
   | some max => erase_odd' s max
+
+def erase_even' (s : Finset ℕ) (n : ℕ) : Finset ℕ := 
+  match n with 
+  | 0 => s.erase 0
+  | n + 1 => if n % 2 == 1 then erase_even' (s.erase (n+1)) n else erase_even' s n 
+
+def erase_even (s : Finset ℕ) : Finset ℕ :=
+  let max := s.max 
+  match max with
+  | ⊥ => s 
+  | some max => erase_even' s max
 
 lemma erase_odd'_is_subset_of_s {s : Finset ℕ} {d : ℕ} {n : ℕ} {hmem : n ∈ erase_odd' s d } : n ∈ s := by
   revert s
@@ -182,6 +194,160 @@ lemma erase_odd_contains_only_even {s : Finset ℕ} {n : ℕ} {h : n ∈ (erase_
   have hh := @erase_odd_odd_mem s n hpar 
   tauto 
 
+lemma erase_even'_is_subset_of_s {s : Finset ℕ} {d : ℕ} {n : ℕ} {hmem : n ∈ erase_even' s d } : n ∈ s := by
+  revert s
+  induction d with 
+  | zero => 
+    intro s hmem 
+    simp [erase_even'] at hmem
+    rcases n <;> aesop 
+  | succ d ih => 
+    intro s hmem 
+    simp [erase_even'] at hmem
+    by_cases hd : d % 2 = 1
+    · aesop 
+      specialize (@ih (s.erase (d+1)) hmem)  
+      aesop 
+    · aesop 
+
+lemma erase_even_is_subset_of_s {s : Finset ℕ} {n : ℕ} {hmem : n ∈ erase_even s } : n ∈ s := by
+  simp [erase_even] at hmem  
+  generalize h : s.max = max 
+  rcases max 
+  · aesop 
+  · apply erase_even'_is_subset_of_s
+    aesop 
+
+lemma erase_even'_even_mem {s : Finset ℕ} {n : ℕ} {h : Even n} {d : ℕ} {h_le : n ≤ d} :
+    n ∉ erase_even' s d := by
+  revert n s 
+  induction d with 
+  | zero => 
+    simp [erase_even']
+    aesop 
+  | succ d ih => 
+    simp [erase_even']
+    intros s n h h_le  
+    by_cases hd : d % 2 = 1
+    · simp [hd]
+      rcases h_le with h_le | h_le 
+      · intro contr 
+        have h :=erase_even'_is_subset_of_s (s := s.erase (d+1)) (hmem := contr)
+        aesop 
+      · intro contr 
+        have hh :=erase_even'_is_subset_of_s (s := s.erase (d+1)) (hmem := contr)
+        aesop 
+    · rcases h_le with h_le | h_le 
+      · unfold Even at h
+        rcases h with ⟨r, h⟩ 
+        omega 
+      · simp [hd] 
+        apply ih <;> try tauto 
+        
+lemma erase_even'_bound {s : Finset ℕ} {n : ℕ} {d : ℕ} {h_gt : n > d} {hmem : n ∈ s } : 
+    n ∈ erase_even' s d := by 
+    revert s n 
+    induction d with 
+    | zero => 
+      simp [erase_even']
+      aesop 
+    | succ d ih =>
+      intro s n h_gt hmem 
+      simp [erase_even']
+      by_cases hd : d % 2 = 1 
+      · rw [hd] 
+        simp 
+        apply ih <;> try omega 
+        aesop 
+      · aesop 
+        apply ih <;> try omega 
+        tauto 
+
+lemma erase_even'_odd_mem {s : Finset ℕ} {n : ℕ} {h : Odd n} {d : ℕ} {h_le : n ≤ d} {h_mem : n ∈ s } : n ∈ erase_even' s d  
+      := by
+  revert n s 
+  induction d with 
+  | zero => 
+    simp [erase_even']
+    aesop 
+  | succ d ih => 
+    simp [erase_even']
+    intros s n h h_le h_mem
+    by_cases hd : d % 2 = 0
+    · simp [hd]
+      rcases h_le with h_le | h_le 
+      · unfold Odd at h 
+        rcases h with ⟨k, h⟩ 
+        have hhh : (d+1) % 2 = 1 := by 
+          have hhh : k + k = 2 * k := by omega 
+          aesop 
+        apply erase_even'_bound <;> try omega 
+        exact h_mem
+      · apply ih <;> try tauto 
+    · rcases h_le with h_le | h_le 
+      · aesop 
+        unfold Odd at h 
+        rcases h with ⟨k, h⟩ 
+        omega 
+      · aesop  
+
+lemma erase_even_even_mem {s : Finset ℕ} {n : ℕ} {h : Even n} : n ∉ (erase_even s) := by
+  generalize hmax : s.max = max 
+  rcases max with _ | d <;> simp [erase_even]
+  · have hbot : none = (⊥ : WithBot ℕ) := by rfl
+    rw [hbot, Finset.max_eq_bot] at hmax
+    simp [hmax]
+  · simp [hmax]
+    by_cases hn : n ≤ d 
+    · apply erase_even'_even_mem <;> try tauto 
+    · intro contr 
+      have hhh := erase_even'_is_subset_of_s (s := s) (d := d) (n := n) (hmem := contr)
+      aesop 
+      have hhhh := Finset.le_max hhh 
+      rw [hmax] at hhhh 
+      have hhhh : n ≤ d := by
+        rw [WithBot.le_def] at hhhh 
+        specialize (hhhh n) 
+        simp at hhhh 
+        aesop 
+        have hw : some d = some w := by 
+          rw [left] 
+          rfl 
+        rw [Option.some_inj] at hw 
+        omega 
+      omega 
+
+lemma erase_even_odd_mem {s : Finset ℕ} {n : ℕ} {he : Odd n} : n ∈ (erase_even s) ↔ n ∈ s := by 
+  apply Iff.intro <;> intro h 
+  · apply erase_even_is_subset_of_s 
+    tauto 
+  · unfold erase_even 
+    generalize hmax : s.max = max 
+    rcases max with _ | max 
+    · simp [h]
+    · simp 
+      by_cases hle : n ≤ max 
+      · apply erase_even'_odd_mem <;> try tauto 
+      · aesop 
+        have hhhh := Finset.le_max h
+        have hhhh : n ≤ max := by
+          rw [WithBot.le_def] at hhhh 
+          specialize (hhhh n) 
+          simp at hhhh 
+          aesop   
+          have hw : some max = some w := by 
+            rw [left] 
+            rfl 
+          rw [Option.some_inj] at hw 
+          omega 
+        omega 
+
+lemma erase_even_contains_only_odd {s : Finset ℕ} {n : ℕ} {h : n ∈ (erase_even s) } : Odd n := by
+  have hpar := Nat.even_or_odd n
+  rcases hpar with hpar | hpar <;> try tauto 
+  have hh := @erase_even_even_mem s n hpar 
+  tauto 
+
 noncomputable def fₑ' (f : Polynomial F) : Polynomial F :=
   match f with
   | ⟨⟨supp, f, pr⟩⟩ => ⟨⟨erase_odd supp, fun n => if n % 2 == 0 then f n else 0, by {
@@ -205,13 +371,176 @@ noncomputable def fₑ' (f : Polynomial F) : Polynomial F :=
       exact h2 
   }⟩⟩
 
-lemma coeffs_of_comp_minux_x {f : Polynomial F} {n : ℕ}:
-    (f.comp (-Polynomial.X)).coeff n = if n % 2 = 0 then f.coeff n else - f.coeff n := by 
-  unfold Polynomial.comp 
-  simp [Polynomial.eval₂_def]
-  sorry
+noncomputable def x_times_fₒ' (f : Polynomial F) : Polynomial F :=
+  match f with
+  | ⟨⟨supp, f, pr⟩⟩ => ⟨⟨erase_even supp, fun n => if n % 2 == 1 then f n else 0, by {
+    intro a 
+    apply Iff.intro <;> intro h 
+    · simp 
+      apply And.intro 
+      · have hodd := @erase_even_contains_only_odd supp a h 
+        simp [Odd] at hodd 
+        rcases hodd with ⟨k, hodd⟩
+        rw [hodd]
+        omega 
+      · have ha := erase_even_is_subset_of_s (hmem := h)
+        aesop 
+    · simp at h 
+      rcases h with ⟨h1, h2⟩
+      aesop 
+      rw [←pr] at h2 
+      have hodd : Odd a := by 
+        simp [Nat.odd_iff, h1]
+      have hhh := erase_even_odd_mem (s := supp) (he := hodd)
+      rw [hhh]
+      exact h2 
+  }⟩⟩
 
-lemma coeffs_of_fₑ' {f : Polynomial F} {n : ℕ}:
+def shift_left' (s : Finset ℕ) (acc : Finset ℕ) (n : ℕ) : Finset ℕ :=
+  match n with 
+  | 0 => acc 
+  | n + 1 => if (n + 1) ∈ s then shift_left' s (insert n acc) n else shift_left' s acc n  
+
+def shift_left (s : Finset ℕ) : Finset ℕ := 
+  match s.max with 
+  | ⊥ => s
+  | some max => shift_left' s Finset.empty max 
+
+lemma shift_left'_contains_accum{s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hmem : d ∈ acc} : 
+    d ∈ shift_left' s acc n := by 
+  revert s acc d
+  induction n with
+  | zero => unfold shift_left' ; tauto 
+  | succ n ih => 
+   unfold shift_left'  
+   intros s acc d hmem 
+   by_cases hn1 : n + 1 ∈ s <;> simp [hn1]
+   · apply ih 
+     aesop 
+   · apply ih 
+     aesop 
+
+lemma shift_left'_subset_of_accum_subset
+  {s : Finset ℕ} {acc acc' : Finset ℕ} {n d : ℕ} {hsub : acc ⊆ acc' } : 
+  shift_left' s acc n ⊆ shift_left' s acc' n := by 
+  revert s acc acc'
+  induction n with
+  | zero =>
+    aesop 
+  | succ n ih => 
+    intros s acc acc' hsub 
+    intros x
+    unfold shift_left' 
+    by_cases hn1 : n + 1 ∈ s <;> simp [hn1] <;> intros h
+    · apply ih 
+      exact (Finset.insert_subset_insert n hsub)
+      exact h
+    · apply ih 
+      exact hsub 
+      exact h
+
+lemma shift_left'_not_from_s_hence_from_accum 
+  {s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hmem : d + 1 ∉ s} : d ∈ shift_left' s acc n → d ∈ acc := by 
+    intros hmem 
+    revert d s acc 
+    induction n with
+    | zero => 
+      aesop 
+    | succ n ih => 
+      intros s acc d hmem h 
+      unfold shift_left' at h 
+      by_cases hn1 : n + 1 ∈ s <;> simp [hn1] at h
+      · -- specialize (@ih s (insert n acc) d 
+        specialize (ih (s := s) (d := d) (acc := insert n acc) (hmem := hmem))
+        aesop 
+      · apply ih 
+        exact hmem 
+        exact h
+
+
+
+      
+
+  
+
+
+lemma shift_left'_mem {s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hle : d < n} :
+  d ∈ shift_left' s acc n ↔ (d ∈ acc ∨ (d + 1) ∈ s ):= by 
+  revert s acc n 
+  induction d with
+  | zero =>
+    intros s acc n 
+    revert s acc 
+    induction n with
+    | zero => 
+      unfold shift_left'
+      simp  
+    | succ n ihn =>
+      intros s acc hle 
+      unfold shift_left' 
+      by_cases hnz : n = 0
+      · rw [hnz] 
+        simp 
+        aesop 
+        unfold shift_left' 
+        aesop 
+      · by_cases hmem : n + 1 ∈ s 
+        · simp [hmem]
+          rw [ihn] <;> try omega 
+          aesop 
+        · simp [hmem] 
+          rw [ihn] <;> try omega 
+  | succ d ih =>
+      intros s acc n
+      revert s acc 
+      induction n with
+      | zero =>
+        intros s acc hle
+        omega 
+      | succ n ihn => 
+        intros s acc hle 
+        unfold shift_left' 
+        by_cases hmem : n + 1 ∈ s <;> simp [hmem]
+        · rcases hle with hle | hle 
+          · aesop 
+            apply shift_left'_contains_accum
+            aesop 
+          · rw [ihn]
+            aesop 
+            apply Nat.lt_of_succ_le
+            exact hle 
+        · rcases hle with hle | hle 
+          · aesop 
+
+            apply shift_left'_contains_accum
+            aesop 
+          · rw [ihn]
+            aesop 
+            apply Nat.lt_of_succ_le
+            exact hle 
+        · 
+
+
+
+def shift_left_and_erase_odd (s : Finset ℕ) 
+
+noncomputable def fₒ' (f : Polynomial F) : Polynomial F :=
+  match f with
+  | ⟨⟨supp, f, pr⟩⟩ => ⟨⟨erase_odd supp, fun n => if n % 2 == 0 then f (n + 1) else 0, by {
+    intro a 
+    apply Iff.intro <;> intro h 
+    · simp 
+      apply And.intro 
+      · have heven := @erase_odd_contains_only_even supp a h 
+        unfold Even at heven 
+        omega 
+      · have heven := @erase_odd_contains_only_even supp a h  
+        
+          
+        
+  }
+
+lemma coeffs_of_fₒ' {f : Polynomial F} {n : ℕ}:
     (fₑ' f).coeff n = if n % 2 = 0 then f.coeff n else 0 := by 
   unfold fₑ' 
   rcases f with ⟨⟨supp, g, h⟩⟩ 
