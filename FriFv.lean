@@ -10,11 +10,11 @@ variable {F: Type} [Field F] [Finite F] [DecidableEq F]
 
 noncomputable def fₑ (f : Polynomial F) : Polynomial F :=
     let X := Polynomial.X
-    Polynomial.C (2⁻¹ : F) * (f.comp X + f.comp (-X))
+    Polynomial.C (2⁻¹ : F) * (f + f.comp (-X))
 
 noncomputable def fₒ (f : Polynomial F) : Polynomial F :=
     let X := Polynomial.X
-    Polynomial.C (2⁻¹ : F) * (f.comp X - f.comp (-X)) /ₘ X
+    Polynomial.C (2⁻¹ : F) * (f - f.comp (-X)) /ₘ X
 
 def erase_odd' (s : Finset ℕ) (n : ℕ) : Finset ℕ := 
   match n with 
@@ -189,10 +189,60 @@ noncomputable def fₑ' (f : Polynomial F) : Polynomial F :=
     apply Iff.intro <;> intro h 
     · simp 
       apply And.intro 
-      · generalize hmod : a % 2 = m 
-        
-      
-  }⟩⟩  
+      · have heven := @erase_odd_contains_only_even supp a h 
+        simp [Even] at heven 
+        omega 
+      · have ha := erase_odd_is_subset_of_s (hmem := h)
+        aesop 
+    · simp at h 
+      rcases h with ⟨h1, h2⟩
+      aesop 
+      rw [←pr] at h2 
+      have heven : Even a := by 
+        simp [Nat.even_iff, h1]
+      have hhh := erase_odd_even_mem (s := supp) (he := heven)
+      rw [hhh]
+      exact h2 
+  }⟩⟩
+
+lemma coeffs_of_comp_minux_x {f : Polynomial F} {n : ℕ}:
+    (f.comp (-Polynomial.X)).coeff n = if n % 2 = 0 then f.coeff n else - f.coeff n := by 
+  unfold Polynomial.comp 
+  simp [Polynomial.eval₂_def]
+  sorry
+
+lemma coeffs_of_fₑ' {f : Polynomial F} {n : ℕ}:
+    (fₑ' f).coeff n = if n % 2 = 0 then f.coeff n else 0 := by 
+  unfold fₑ' 
+  rcases f with ⟨⟨supp, g, h⟩⟩ 
+  simp 
+
+lemma fₑ_eq_fₑ' {f : Polynomial F} {hchar : (2 : F) ≠ 0} : fₑ f = fₑ' f := by 
+  apply Polynomial.ext 
+  intro n 
+  rw [coeffs_of_fₑ']
+  by_cases hpar : n % 2 = 0 
+  · simp [hpar] 
+    unfold fₑ
+    simp 
+    conv =>
+      lhs 
+      rw [mul_add]
+      rfl 
+    rw [coeffs_of_comp_minux_x]
+    simp [hpar]
+    ring_nf 
+    have hhh : (2 : F) * 2⁻¹ = 1 := by 
+      rw [Field.mul_inv_cancel]
+      exact hchar
+    rw [mul_comm, ←mul_assoc, hhh]
+    simp 
+  · aesop 
+    unfold fₑ
+    simp
+    right 
+    rw [coeffs_of_comp_minux_x]
+    aesop 
 
 lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} : fₑ f + Polynomial.X * fₒ f = f := by
    unfold fₑ fₒ
