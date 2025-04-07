@@ -631,16 +631,72 @@ lemma fₑ_eq_fₑ' {f : Polynomial F} {hchar : (2 : F) ≠ 0} : fₑ f = fₑ' 
     rw [coeffs_of_comp_minus_x]
     aesop 
 
-lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} : fₑ f + Polynomial.X * fₒ f = f := by
-   unfold fₑ fₒ
-   generalize h : f.degree = d
-   rcases d with ⟨_ | d⟩ <;> simp
-   · have h: f = 0 := by
-      rw [← Polynomial.degree_eq_bot]
-      aesop
-     rw [h]
-     simp
-   · sorry
+lemma fₒ_eq_fₒ'_aux {f : Polynomial F} {hchar : (2 : F) ≠ 0 } : (Polynomial.C (2⁻¹ : F)) * (f - f.comp (-Polynomial.X)) = x_times_fₒ' f := by
+  apply Polynomial.ext 
+  intro n
+  simp 
+  rw [coeffs_of_comp_minus_x]
+  unfold x_times_fₒ'
+  rcases f with ⟨⟨supp, g, hhh⟩⟩ 
+  simp 
+  by_cases hpar : n % 2 = 0 
+  · aesop 
+  · aesop 
+    ring_nf 
+    rw [mul_comm, ←mul_assoc]
+    have hhhhh : (2 : F) * 2⁻¹ = 1 := by 
+      apply Field.mul_inv_cancel
+      exact hchar 
+    rw [hhhhh]
+    ring 
+
+lemma fₒ_eq_fₒ'_aux' {f : Polynomial F} {hchar : (2 : F) ≠ 0 } : (f - f.comp (-Polynomial.X)) = (Polynomial.C 2) * x_times_fₒ' f := by
+  apply Polynomial.ext 
+  intro n 
+  simp 
+  rw [←fₒ_eq_fₒ'_aux]
+  aesop 
+  exact hchar 
+
+lemma fₒ_eq_fₒ' {f : Polynomial F} {hchar : (2: F) ≠ 0 } : fₒ' f = fₒ f := by 
+  unfold fₒ
+  simp
+  rw [fₒ_eq_fₒ'_aux' (hchar := hchar) ]
+  rw [←x_times_fₒ'_eq_x_times_fₒ']
+  rw [←mul_assoc] 
+  rw [←Polynomial.C_mul]
+  have hhh : 2⁻¹ * (2 : F) = 1 := by 
+    rw [mul_comm]
+    apply Field.mul_inv_cancel
+    tauto 
+  rw [hhh]
+  simp 
+  rw [Polynomial.mul_divByMonic_cancel_left]
+  aesop 
+
+lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} {hchar : (2 : F) ≠ 0} : fₑ f + Polynomial.X * fₒ f = f := by
+  rw [←fₒ_eq_fₒ' (hchar := hchar)]
+  rw [fₑ_eq_fₑ' (hchar := hchar)]
+  apply Polynomial.ext 
+  intro n 
+  unfold fₒ' fₑ'
+  rcases f with ⟨⟨supp, g, hhhh⟩⟩ 
+  simp 
+  by_cases hpar : n % 2 = 0
+  · simp [hpar]
+    rcases n with _ | n 
+    · simp 
+    · simp 
+      intros h 
+      omega 
+  · simp [hpar]
+    rcases n with _ | n 
+    · simp 
+      omega 
+    · simp 
+      intros h
+      omega 
+
 
 section
 
