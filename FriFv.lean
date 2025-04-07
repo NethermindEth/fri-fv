@@ -404,7 +404,7 @@ def shift_left' (s : Finset ℕ) (acc : Finset ℕ) (n : ℕ) : Finset ℕ :=
 def shift_left (s : Finset ℕ) : Finset ℕ := 
   match s.max with 
   | ⊥ => s
-  | some max => shift_left' s Finset.empty max 
+  | some max => shift_left' s Finset.empty (max + 1)
 
 lemma shift_left'_contains_accum{s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hmem : d ∈ acc} : 
     d ∈ shift_left' s acc n := by 
@@ -457,15 +457,8 @@ lemma shift_left'_not_from_s_hence_from_accum
         exact hmem 
         exact h
 
-
-
-      
-
-  
-
-
-lemma shift_left'_mem {s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hle : d < n} :
-  d ∈ shift_left' s acc n ↔ (d ∈ acc ∨ (d + 1) ∈ s ):= by 
+lemma shift_left'_mem {s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hle : d ≤ n} :
+  d ∈ shift_left' s acc (n + 1) ↔ (d ∈ acc ∨ (d + 1) ∈ s ):= by 
   revert s acc n 
   induction d with
   | zero =>
@@ -474,7 +467,9 @@ lemma shift_left'_mem {s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hle : d <
     induction n with
     | zero => 
       unfold shift_left'
-      simp  
+      simp 
+      unfold shift_left' 
+      aesop 
     | succ n ihn =>
       intros s acc hle 
       unfold shift_left' 
@@ -482,9 +477,7 @@ lemma shift_left'_mem {s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hle : d <
       · rw [hnz] 
         simp 
         aesop 
-        unfold shift_left' 
-        aesop 
-      · by_cases hmem : n + 1 ∈ s 
+      · by_cases hmem : n + 1 + 1 ∈ s 
         · simp [hmem]
           rw [ihn] <;> try omega 
           aesop 
@@ -500,7 +493,7 @@ lemma shift_left'_mem {s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hle : d <
       | succ n ihn => 
         intros s acc hle 
         unfold shift_left' 
-        by_cases hmem : n + 1 ∈ s <;> simp [hmem]
+        by_cases hmem : n + 1 + 1 ∈ s <;> simp [hmem]
         · rcases hle with hle | hle 
           · aesop 
             apply shift_left'_contains_accum
@@ -511,40 +504,105 @@ lemma shift_left'_mem {s : Finset ℕ} {acc : Finset ℕ} {n d : ℕ} {hle : d <
             exact hle 
         · rcases hle with hle | hle 
           · aesop 
-
+            apply shift_left'_not_from_s_hence_from_accum
+            exact hmem 
+            exact a
             apply shift_left'_contains_accum
-            aesop 
+            exact a 
           · rw [ihn]
             aesop 
-            apply Nat.lt_of_succ_le
-            exact hle 
-        · 
 
+lemma shift_left_mem {s : Finset ℕ} {d : ℕ} : d ∈ shift_left s ↔ (d + 1) ∈ s := by 
+  unfold shift_left 
+  generalize hh : s.max = m 
+  rcases m with _ | m 
+  · simp 
+    have hhh : (⊥ : WithBot ℕ) = none := by rfl 
+    rw [←hhh] at hh 
+    rw [Finset.max_eq_bot] at hh 
+    rw [hh]
+    simp 
+  · simp 
+    by_cases hle : d ≤ m 
+    · rw [shift_left'_mem]
+      tauto 
+      omega  
+    · have hhh : (d + 1) ∉ s := by 
+        intro contr 
+        have hhh := Finset.le_max (a := d + 1) (s := s) (by {
+         exact contr 
+        })
+        rw [hh] at hhh 
+        have hhh : d+1 ≤ m := by 
+          specialize (hhh (d+1)) 
+          simp at hhh 
+          rcases hhh with ⟨b, hhh⟩ 
+          have hhhh : m = b := by 
+            rw [←Option.some_inj]
+            rcases hhh with ⟨hhh1, hh2⟩ 
+            rw [hhh1]
+            rfl 
+          aesop
+        omega 
+      aesop 
+      have hd : d ∈ Finset.empty := by 
+        apply shift_left'_not_from_s_hence_from_accum
+        exact hhh 
+        exact a 
+      tauto 
 
-
-def shift_left_and_erase_odd (s : Finset ℕ) 
 
 noncomputable def fₒ' (f : Polynomial F) : Polynomial F :=
   match f with
-  | ⟨⟨supp, f, pr⟩⟩ => ⟨⟨erase_odd supp, fun n => if n % 2 == 0 then f (n + 1) else 0, by {
+  | ⟨⟨supp, f, pr⟩⟩ => ⟨⟨shift_left (erase_even supp), fun n => if n % 2 == 0 then f (n + 1) else 0, by {
     intro a 
     apply Iff.intro <;> intro h 
     · simp 
       apply And.intro 
-      · have heven := @erase_odd_contains_only_even supp a h 
-        unfold Even at heven 
+      · rw [shift_left_mem] at h
+        have hhh := erase_even_contains_only_odd (h := h) 
+        rw [Nat.odd_iff] at hhh 
         omega 
-      · have heven := @erase_odd_contains_only_even supp a h  
-        
-          
-        
-  }
+      · rw [shift_left_mem] at h
+        have hhh := erase_even_is_subset_of_s (hmem := h)
+        rw [pr] at hhh 
+        tauto 
+    · rw [shift_left_mem]
+      simp at h 
+      rcases h with ⟨h1, h2⟩
+      have hhh : (a+1) ∈ supp := by aesop 
+      rw [erase_even_odd_mem]
+      exact hhh 
+      rw [Nat.odd_iff]
+      omega 
+    }⟩⟩
 
-lemma coeffs_of_fₒ' {f : Polynomial F} {n : ℕ}:
+lemma x_times_fₒ'_eq_x_times_fₒ' {f : Polynomial F} : 
+    Polynomial.X * (fₒ' f) = x_times_fₒ' f := by
+  apply Polynomial.ext
+  intro n 
+  unfold fₒ' x_times_fₒ'
+  simp 
+  rcases f with ⟨⟨supp, g, h⟩⟩ 
+  rcases n with _ | n 
+  · simp 
+  · simp 
+    by_cases hpar : n % 2 = 0 
+    · simp [hpar]
+      aesop 
+      omega 
+    · simp [hpar] 
+      aesop 
+      omega 
+
+lemma coeffs_of_fₑ' {f : Polynomial F} {n : ℕ}:
     (fₑ' f).coeff n = if n % 2 = 0 then f.coeff n else 0 := by 
   unfold fₑ' 
   rcases f with ⟨⟨supp, g, h⟩⟩ 
-  simp 
+  simp
+
+lemma coeffs_of_comp_minus_x {f : Polynomial F} {n : ℕ} :
+    (f.comp (-Polynomial.X)).coeff n = if n % 2 = 0 then f.coeff n else -f.coeff n := by sorry
 
 lemma fₑ_eq_fₑ' {f : Polynomial F} {hchar : (2 : F) ≠ 0} : fₑ f = fₑ' f := by 
   apply Polynomial.ext 
@@ -558,7 +616,7 @@ lemma fₑ_eq_fₑ' {f : Polynomial F} {hchar : (2 : F) ≠ 0} : fₑ f = fₑ' 
       lhs 
       rw [mul_add]
       rfl 
-    rw [coeffs_of_comp_minux_x]
+    rw [coeffs_of_comp_minus_x]
     simp [hpar]
     ring_nf 
     have hhh : (2 : F) * 2⁻¹ = 1 := by 
@@ -570,7 +628,7 @@ lemma fₑ_eq_fₑ' {f : Polynomial F} {hchar : (2 : F) ≠ 0} : fₑ f = fₑ' 
     unfold fₑ
     simp
     right 
-    rw [coeffs_of_comp_minux_x]
+    rw [coeffs_of_comp_minus_x]
     aesop 
 
 lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} : fₑ f + Polynomial.X * fₒ f = f := by
