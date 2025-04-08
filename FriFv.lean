@@ -697,16 +697,149 @@ lemma fₑ_plus_x_mul_fₒ_eq_f {f : Polynomial F} {hchar : (2 : F) ≠ 0} : f�
       intros h
       omega 
 
-
 section
 
 def divide_by_2' (s : Finset ℕ) (acc : Finset ℕ) (n : ℕ) : Finset ℕ := 
   match n with 
-  | 0 => acc 
-  | n + 1 => if 2 * n ∈ s then divide_by_2' s (insert n acc) n else divide_by_2' s acc n
+  | 0 => if 0 ∈ s then insert 0 acc else acc 
+  | n + 1 => if 2 * (n+1) ∈ s then divide_by_2' s (insert (n+1) acc) n else divide_by_2' s acc n
 
-opaque fₑ_x : Polynomial F → Polynomial F := sorry
-opaque fₒ_x : Polynomial F → Polynomial F := sorry
+def divide_by_2 (s : Finset ℕ) : Finset ℕ := 
+  match s.max with 
+  | ⊥ => s 
+  | some max => divide_by_2' s Finset.empty max 
+
+lemma divide_by_2'_contains_accum {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ } {hmem : d ∈ acc} :
+    d ∈ divide_by_2' s acc n := by 
+  revert s acc d 
+  induction n with
+  | zero => 
+    intros s acc d hmem 
+    unfold divide_by_2'
+    aesop 
+  | succ n ih => 
+    intros s acc d hmem 
+    unfold divide_by_2'
+    by_cases hif : 2 * (n + 1) ∈ s
+    · simp [hif]
+      apply ih 
+      aesop 
+    · simp [hif]
+      apply ih 
+      exact hmem
+
+lemma divide_by_2'_mem {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ } { hle : d ≤ n } : 2 * d ∈ s → d ∈ divide_by_2' s acc n := by 
+  revert s acc d 
+  induction n with
+  | zero => 
+    intros s acc d hle h 
+    unfold divide_by_2'
+    have hhh : d = 0 := by omega 
+    aesop 
+  | succ n ih => 
+    intros s acc d hle h 
+    unfold divide_by_2'
+    by_cases hmem : 2 * (n + 1) ∈ s
+    · simp [hmem]
+      rcases hle with hle | hle 
+      · apply divide_by_2'_contains_accum
+        aesop 
+      · apply ih <;> try tauto 
+    · simp [hmem]
+      rcases hle with hle | hle <;> try tauto 
+
+lemma divide_by_2'_mem_bound {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ } {hnmem : d ∉ acc}:
+    d ∈ divide_by_2' s acc n → d ≤ n := by 
+  revert s acc d 
+  induction n with
+  | zero => 
+    intros s acc d hnmem 
+    unfold divide_by_2'
+    aesop 
+  | succ n ih => 
+    intros s acc d hnmem h
+    by_cases hmem : 2 * (n + 1) ∈ s
+    · unfold divide_by_2' at h 
+      simp [hmem] at h
+      by_cases hd : d = n + 1 <;> try omega 
+      apply Nat.le_succ_of_le
+      apply (ih (acc := (insert (n + 1) acc)))
+      exact h
+      aesop 
+    · unfold divide_by_2' at h 
+      simp [hmem] at h
+      by_cases hd : d = n + 1 <;> try omega 
+      apply Nat.le_succ_of_le
+      apply (ih (acc := acc)) <;> try tauto
+
+
+lemma divide_by_2'_mem_char {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ } :
+    d ∈ divide_by_2' s acc n → d ∈ acc ∨ 2 * d ∈ s := by 
+  intros h 
+  by_cases hmem : d ∈ acc <;> try tauto 
+  right 
+  have hhh : d ≤ n := by apply divide_by_2'_mem_bound (s := s) (acc := acc) (n := n) (hnmem := hmem) <;> try tauto
+  revert s acc d 
+  induction n with
+  | zero => 
+    intros s acc d h hnin 
+    unfold divide_by_2' at h 
+    aesop 
+  | succ n ih => 
+    intros s acc d h hnin hle 
+    unfold divide_by_2' at h 
+    by_cases hif : 2*(n+1) ∈ s 
+    · simp [hif] at h
+      rcases hle with hle | hle <;> try tauto 
+      apply ih 
+      exact h 
+      aesop 
+      exact hle 
+    · simp [hif] at h
+      rcases hle with hle | hle <;> try tauto 
+      have hhh := divide_by_2'_mem_bound (hnmem := hnin) h 
+      omega 
+    
+lemma divide_by_2_mem {s : Finset ℕ} {d : ℕ} : 
+  d ∈ divide_by_2 s ↔ 2 * d ∈ s := by 
+  unfold divide_by_2 
+  generalize hmax : s.max = m 
+  rcases m with m | m 
+  · simp 
+    have hhh : s.max = ⊥ := by exact hmax 
+    rw [Finset.max_eq_bot] at hhh 
+    aesop 
+  · simp 
+    apply Iff.intro 
+    · intros h 
+      have h := divide_by_2'_mem_char h 
+      tauto 
+    · intros h 
+      have h := divide_by_2'_mem (s := s) (n := m) (acc := Finset.empty) h (hle := by {
+        have hh : 2 * d ≤ m := by 
+          have hh := Finset.le_max h 
+          rw [hmax] at hh 
+          specialize (hh (2*d))
+          simp at hh 
+          rcases hh with ⟨k, hh⟩ 
+          have hhh : k = m := by 
+            apply Option.some_injective
+            rw [hh.1] 
+            rfl 
+          omega 
+        omega 
+      }) 
+      exact h 
+
+noncomputable def evenize (f : Polynomial F) : Polynomial F := 
+  match f with 
+  | ⟨⟨supp, g, h⟩⟩ => ⟨⟨divide_by_2 supp, fun n => g (2 * n), by {
+    intros a 
+    rw [divide_by_2_mem, h]
+  }⟩⟩ 
+
+noncomputable def fₑ_x (f : Polynomial F) : Polynomial F := evenize (fₑ f)
+noncomputable def fₒ_x (f : Polynomial F) : Polynomial F := evenize (fₒ f)
 
 lemma fₑ_x_is_a_subst_of_fₑ {f : Polynomial F} : fₑ f = (fₑ_x f).comp (Polynomial.X * Polynomial.X) := by
   sorry
