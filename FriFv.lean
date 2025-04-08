@@ -838,41 +838,321 @@ noncomputable def evenize (f : Polynomial F) : Polynomial F :=
     rw [divide_by_2_mem, h]
   }⟩⟩ 
 
+def mul_by_2' (s : Finset ℕ) (acc : Finset ℕ) (n : ℕ) : Finset ℕ :=
+  match n with
+  | 0 => if 0 ∈ s then insert 0 acc else acc 
+  | n + 1 => if (n + 1) ∈ s then mul_by_2' s (insert (2 * (n + 1)) acc) n else mul_by_2' s acc n
+
+def mul_by_2 (s : Finset ℕ) : Finset ℕ := 
+  match s.max with 
+  | ⊥ => s 
+  | some m => mul_by_2' s Finset.empty m
+
+lemma mul_by_2'_contains_accum {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ} :
+    d ∈ acc → d ∈ mul_by_2' s acc n := by 
+  revert s acc d 
+  induction n with
+  | zero => 
+    intros s acc d h 
+    unfold mul_by_2'
+    aesop 
+  | succ n ih => 
+    intros s acc d h 
+    unfold mul_by_2'
+    by_cases hif : n + 1 ∈ s 
+    · simp [hif] 
+      apply ih 
+      aesop 
+    · simp [hif]
+      apply ih 
+      exact h
+
+lemma mul_by_2'_acc_mem {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ} {hnin : d ∉ s}:
+    2 * d ∈ mul_by_2' s acc n → 2 * d ∈ acc := by 
+  revert s acc d 
+  induction n with
+  | zero => 
+    intros s acc d hnin h
+    unfold mul_by_2' at h 
+    aesop 
+  | succ n ih => 
+    intros s acc d hnin h
+    unfold mul_by_2' at h 
+    by_cases hif : n+1 ∈ s 
+    · simp [hif] at h 
+      specialize (ih (d := d) (s := s) (acc :=(insert (2 * (n + 1)) acc)) (hnin := by {
+        exact hnin   
+      }) h)
+      aesop 
+    · simp [hif] at h 
+      apply ih 
+      exact hnin 
+      exact h 
+
+lemma mul_by_2'_mem {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ} {hle : d ≤ n} :
+    2 * d ∈ mul_by_2' s acc n ↔ d ∈ s ∨ 2 * d ∈ acc := by 
+  revert s acc d hle 
+  induction n with
+  | zero => 
+    intros s acc n d 
+    unfold mul_by_2' 
+    aesop 
+  | succ n ih => 
+    intros s acc d hle 
+    unfold mul_by_2' 
+    by_cases hif : n + 1 ∈ s 
+    · simp [hif]
+      rcases hle with hle | hle
+      · aesop 
+        apply mul_by_2'_contains_accum
+        aesop 
+      · aesop 
+    · simp [hif] 
+      rcases hle with hle | hle 
+      · aesop 
+        apply mul_by_2'_acc_mem 
+        exact hif 
+        apply a 
+        apply mul_by_2'_contains_accum
+        exact a 
+      · aesop 
+
+lemma mul_by_2'_bound {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ} {hnin : d > n}:
+    2 * d ∈ mul_by_2' s acc n → 2 * d ∈ acc := by 
+  revert s acc d 
+  induction n with
+  | zero => 
+    intros s acc d hnin 
+    unfold mul_by_2' 
+    aesop 
+  | succ n ih => 
+    intros s acc d hnin h 
+    unfold mul_by_2' at h
+    by_cases hmem : n+1 ∈ s 
+    · simp [hmem] at h
+      specialize (ih (acc := (insert (2 * (n + 1)) acc)) (s := s) (d := d) h) 
+      omega 
+      aesop 
+    · simp [hmem] at h
+      apply ih 
+      omega 
+      exact h 
+
+lemma mul_by_2'_abs_bound {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ} {hnin : d > 2 * n}:
+    d ∈ mul_by_2' s acc n → d ∈ acc := by 
+  revert s acc d 
+  induction n with
+  | zero => 
+    intros s acc d hnin 
+    unfold mul_by_2' 
+    aesop 
+  | succ n ih => 
+    intros s acc d hnin h 
+    unfold mul_by_2' at h
+    by_cases hmem : n+1 ∈ s 
+    · simp [hmem] at h
+      specialize (ih (acc := (insert (2 * (n + 1)) acc)) (s := s) (d := d) h) 
+      omega 
+      aesop 
+    · simp [hmem] at h
+      apply ih 
+      omega 
+      exact h
+
+lemma mul_by_2'_not_mem_odd {s : Finset ℕ} {acc : Finset ℕ} {n : ℕ} {d : ℕ} :
+    (2 * d + 1) ∈ mul_by_2' s acc n → 2 * d + 1 ∈ acc := by 
+  revert s acc d 
+  induction n with
+  | zero => 
+    intro s acc d h 
+    unfold mul_by_2' at h 
+    aesop 
+  | succ n ih => 
+    intros s acc d h 
+    by_cases hle : d ≤ (n + 1)
+    · rcases hle with hle | hle 
+      · unfold mul_by_2' at h
+        by_cases hif : (n + 1 ∈ s)
+        · simp [hif] at h 
+          specialize (ih h)
+          aesop 
+        · simp [hif] at h 
+          specialize (ih h) 
+          tauto 
+      · unfold mul_by_2' at h 
+        by_cases hif : (n + 1 ∈ s)
+        · 
+          simp [hif] at h 
+          specialize (ih h)
+          aesop 
+          omega 
+        · simp [hif] at h 
+          specialize (ih h) 
+          tauto 
+    · unfold mul_by_2' at h 
+      by_cases hmem : n+1 ∈ s 
+      · simp [hmem] at h 
+        have hhh := mul_by_2'_abs_bound (acc :=(insert (2 * (n + 1)) acc)) (d := 2*d + 1) (n := n) (s := s) (hnin := by {
+          omega 
+        }) h
+        rw [Finset.mem_insert] at hhh 
+        rcases hhh with hhh | hhh <;> try tauto
+        omega 
+      · simp [hmem] at h 
+        apply ih 
+        exact h 
+
+lemma mul_by_2_mem {s : Finset ℕ} {d : ℕ} : 
+    2 * d ∈ mul_by_2 s ↔ d ∈ s := by 
+  generalize hmax : s.max = m 
+  unfold mul_by_2
+  rcases m with _ | m 
+  · have hhh : s.max = ⊥ := by exact hmax
+    rw [Finset.max_eq_bot] at hhh 
+    aesop 
+  · simp [hmax] 
+    by_cases hle : d ≤ m
+    · rw [mul_by_2'_mem] <;> try tauto 
+    · have hh : d ∉ s := by 
+        intro contr 
+        have hh := Finset.le_max contr 
+        specialize (hh d) 
+        simp at hh
+        rcases hh with ⟨k, hh⟩ 
+        have hhh : k = m := by 
+            apply Option.some_injective 
+            rw [hmax] at hh 
+            rw [hh.1] 
+            rfl 
+        omega
+      aesop 
+      have hhh := mul_by_2'_bound a (hnin := by tauto)
+      tauto 
+
+lemma mul_by_2_not_mem_odd {s : Finset ℕ} {d : ℕ} :
+    (2 * d + 1) ∉ mul_by_2 s := by 
+  intro contr 
+  unfold mul_by_2 at contr
+  generalize hmax : s.max = m 
+  rcases m with _ | m
+  · simp [hmax] at contr 
+    have hhh : s.max = ⊥ := by exact hmax
+    rw [Finset.max_eq_bot] at hhh 
+    aesop 
+  · simp [hmax] at contr 
+    have hhh := mul_by_2'_not_mem_odd contr 
+    tauto 
+
+noncomputable def deevenize (f : Polynomial F) : Polynomial F := 
+  match f with 
+  | ⟨⟨supp, g, h⟩⟩ => ⟨⟨mul_by_2 supp, fun n => if n % 2 = 0 then g (n / 2) else 0, by {
+    intro a 
+    by_cases hpar : a % 2 = 0
+    · simp [hpar]
+      rw [←Nat.even_iff] at hpar 
+      rcases hpar with ⟨k, hpar⟩ 
+      rw [hpar]
+      have hh : k + k = 2 * k := by omega 
+      rw [hh]
+      rw [mul_by_2_mem]
+      aesop 
+    · simp [hpar] 
+      have hpar : Odd a := by 
+        rw [Nat.odd_iff]
+        omega 
+      unfold Odd at hpar 
+      rcases hpar with ⟨k, hpar⟩ 
+      rw [hpar]
+      apply mul_by_2_not_mem_odd
+  }⟩⟩
+
+lemma comp_x_sqrt_eq_deevenized {f : Polynomial F} : 
+    deevenize f = f.comp (Polynomial.X * Polynomial.X) := by 
+  apply Polynomial.ext
+  intro n 
+  unfold deevenize 
+  rcases f with ⟨⟨supp, g, h⟩⟩ 
+  simp 
+  sorry 
+
 noncomputable def fₑ_x (f : Polynomial F) : Polynomial F := evenize (fₑ f)
 noncomputable def fₒ_x (f : Polynomial F) : Polynomial F := evenize (fₒ f)
 
-lemma fₑ_x_is_a_subst_of_fₑ {f : Polynomial F} : fₑ f = (fₑ_x f).comp (Polynomial.X * Polynomial.X) := by
-  sorry
+lemma fₑ_x_is_a_subst_of_fₑ {f : Polynomial F} {hchar : (2 : F) ≠ 0} : fₑ f = (fₑ_x f).comp (Polynomial.X * Polynomial.X) := by
+  rw [fₑ_eq_fₑ' (hchar := hchar)] 
+  unfold fₑ' 
+  rcases f with ⟨⟨supp, g, h⟩⟩
+  simp 
+  apply Polynomial.ext
+  intro n 
+  simp 
+  rw [←comp_x_sqrt_eq_deevenized]
+  unfold deevenize
+  simp 
+  unfold fₑ_x evenize 
+  rw [fₑ_eq_fₑ' (hchar := hchar)]
+  unfold fₑ'
+  simp 
+  by_cases hpar : n % 2 = 0 
+  · simp [hpar]
+    rw [←Nat.div_add_mod n 2]
+    rw [hpar]
+    simp 
+  · simp [hpar]
 
-lemma fₒ_x_is_a_subst_of_fₑ {f : Polynomial F} : fₒ f = (fₒ_x f).comp (Polynomial.X * Polynomial.X) := by
-  sorry
+lemma fₒ_x_is_a_subst_of_fₑ {f : Polynomial F} {hchar : (2 : F) ≠ 0} : fₒ f = (fₒ_x f).comp (Polynomial.X * Polynomial.X) := by
+  rw [←fₒ_eq_fₒ' (hchar := hchar)] 
+  unfold fₒ' 
+  rcases f with ⟨⟨supp, g, h⟩⟩
+  simp 
+  apply Polynomial.ext
+  intro n 
+  simp 
+  rw [←comp_x_sqrt_eq_deevenized]
+  unfold deevenize
+  simp 
+  unfold fₒ_x evenize 
+  rw [←fₒ_eq_fₒ' (hchar := hchar)]
+  unfold fₒ'
+  simp 
+  by_cases hpar : n % 2 = 0 
+  · simp [hpar]
+    rw [←Nat.div_add_mod n 2]
+    rw [hpar]
+    simp 
+  · simp [hpar]
 
-lemma fₑ_x_eval {f : Polynomial F} {x : F} : Polynomial.eval (x ^ 2) (fₑ_x f) = Polynomial.eval x (fₑ f) := by
+
+lemma fₑ_x_eval {f : Polynomial F} {x : F} {hchar : (2 : F) ≠ 0} : Polynomial.eval (x ^ 2) (fₑ_x f) = Polynomial.eval x (fₑ f) := by
   have hh : Polynomial.eval (x ^ 2) (fₑ_x f) = Polynomial.eval (x) ((fₑ_x f).comp (Polynomial.X * Polynomial.X)) := by
     simp only [Polynomial.eval_comp, Polynomial.eval_mul, Polynomial.eval_X]
     ring_nf
   rw [hh, ←fₑ_x_is_a_subst_of_fₑ]
+  tauto 
 
-lemma fₒ_x_eval {f : Polynomial F} {x : F} : Polynomial.eval (x ^ 2) (fₒ_x f) = Polynomial.eval x (fₒ f) := by
+lemma fₒ_x_eval {f : Polynomial F} {x : F} {hchar : (2 : F) ≠ 0}: Polynomial.eval (x ^ 2) (fₒ_x f) = Polynomial.eval x (fₒ f) := by
   have hh : Polynomial.eval (x ^ 2) (fₒ_x f) = Polynomial.eval (x) ((fₒ_x f).comp (Polynomial.X * Polynomial.X)) := by
     simp only [Polynomial.eval_comp, Polynomial.eval_mul, Polynomial.eval_X]
     ring_nf
   rw [hh, ←fₒ_x_is_a_subst_of_fₑ]
+  tauto 
 
-lemma fₑ_is_even {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } :
+lemma fₑ_is_even {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } {hchar : (2 : F) ≠ 0}:
   Polynomial.eval s₀ (fₑ f) = Polynomial.eval s₁ (fₑ f) := by
-    rw [←fₑ_x_eval, ←fₑ_x_eval]
+    rw [←fₑ_x_eval (hchar:=hchar), ←fₑ_x_eval (hchar:=hchar)]
     have hhh : s₀^2 = s₁ ^ 2 := by
         convert h <;> ring
     rw [hhh]
 
 
-lemma fₒ_is_even' {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } :
+lemma fₒ_is_even' {f : Polynomial F} {s₀ s₁ : F} {h : s₀ * s₀ = s₁ * s₁ } {hchar : (2 : F) ≠ 0}:
   Polynomial.eval s₀ (fₒ f) = Polynomial.eval s₁ (fₒ f) := by
     rw [←fₒ_x_eval, ←fₒ_x_eval]
     have hhh : s₀^2 = s₁ ^ 2 := by
         convert h <;> ring
     rw [hhh]
+    tauto
+    tauto 
 
 end
 
@@ -909,7 +1189,7 @@ lemma the_glorious_lemma {x y : F} (z : F) (h : z ≠ 0) (h₁ : z * x = z * y )
     rfl
 
 lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ α₁ : F} { h₁ : s₀ * s₀ = s₁ * s₁ }
-  { h₂ : f.eval s₀ = α₀ } {h₃ : f.eval s₁ = α₁ } {h₄ : s₀ ≠ s₁ }
+  { h₂ : f.eval s₀ = α₀ } {h₃ : f.eval s₁ = α₁ } {h₄ : s₀ ≠ s₁ }{hchar : (2 : F) ≠ 0}
    :
   line_through_two_points (s₀, α₀) (s₁, α₁) =
     Polynomial.C (Polynomial.eval (s₀^2) (fₑ_x f)) + Polynomial.X * (Polynomial.C (Polynomial.eval (s₀^2) (fₒ_x f))) := by
@@ -918,7 +1198,7 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
   apply Polynomial.ext
   intro n
   rcases n with _ | n <;> simp
-  · rw [←h₂, ←h₃, fₑ_x_eval]
+  · rw [←h₂, ←h₃, fₑ_x_eval (hchar := hchar)]
     have hhh : Polynomial.eval s₀ f - (Polynomial.eval s₁ f - Polynomial.eval s₀ f) / (s₁ - s₀) * s₀ =
       ((s₁ - s₀ ) * Polynomial.eval s₀ f - s₀ * (Polynomial.eval s₁ f - Polynomial.eval s₀ f)) / (s₁ - s₀)
       := by
@@ -975,13 +1255,13 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
       s₁ * Polynomial.eval s₀ (fₑ f + Polynomial.X * ( fₒ f )) - s₀ * Polynomial.eval s₁ ( fₑ f + Polynomial.X * ( fₒ f ) ) := by
       conv =>
         lhs
-        rw [←fₑ_plus_x_mul_fₒ_eq_f (f := f)]
+        rw [←fₑ_plus_x_mul_fₒ_eq_f (f := f) (hchar := hchar)]
     rw [hhh]
     simp only [Polynomial.eval_add, Polynomial.eval_mul, Polynomial.eval_X]
     ring_nf
-    rw [fₒ_is_even' (s₀ := s₀) (s₁ := s₁) (h := h₁)]
+    rw [fₒ_is_even' (s₀ := s₀) (s₁ := s₁) (h := h₁) (hchar := hchar)]
     ring_nf
-    rw [fₑ_is_even (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
+    rw [fₑ_is_even (s₀ := s₁) (s₁ := s₀) (h := by aesop) ]
     ring_nf
     intro contr
     have hhh : s₁ = s₀ := by
@@ -989,18 +1269,28 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
         ring_nf
       rw [hhh, ←contr]
       ring_nf
+      rw [contr] 
+      simp 
+      tauto 
     aesop
+    intro contr 
+    have hhhh : s₁ = s₀ := by 
+      have hhh : s₀ = s₀ + 0 := by
+        ring_nf
+      rw [hhh, ←contr]
+      ring_nf
+    tauto  
   · rcases n with _ | n <;> simp
-    rw [←h₂, ←h₃, fₒ_x_eval]
+    rw [←h₂, ←h₃, fₒ_x_eval (hchar := hchar)]
     rw [div_eq_iff]
     conv =>
       lhs
-      rw [←fₑ_plus_x_mul_fₒ_eq_f (f := f)]
+      rw [←fₑ_plus_x_mul_fₒ_eq_f (f := f) (hchar := hchar)]
     simp only [Polynomial.eval_add, Polynomial.eval_mul, Polynomial.eval_X]
     ring_nf
-    rw [fₑ_is_even (s₀ := s₀) (s₁ := s₁) (h := h₁)]
+    rw [fₑ_is_even (s₀ := s₀) (s₁ := s₁) (h := h₁) (hchar:=hchar) ]
     ring_nf
-    rw [fₒ_is_even' (s₀ := s₁) (s₁ := s₀) (h := by aesop)]
+    rw [fₒ_is_even' (s₀ := s₁) (s₁ := s₀) (h := by aesop) (hchar := hchar)]
     intro contr
     have hhh : s₁ = s₀ := by
       have hhh : s₀ = s₀ + 0 := by
@@ -1011,11 +1301,11 @@ lemma line_passing_through_the_poly { f : Polynomial F } {s₀ s₁ : F} {α₀ 
 
 lemma consistency_check_comp { f : Polynomial F }  {x₀ : F} {y : F} {s₀ s₁ : F} {α₀ α₁ β : F} { h₁ : s₀ * s₀ = s₁ * s₁ }
   { h₂ : f.eval s₀ = α₀ } {h₃ : f.eval s₁ = α₁ } { h₄ : Polynomial.eval y (foldα f x₀)= β }
-  { h₅ : s₀ * s₀ = y } {h₆ : s₀ ≠ s₁ } :
+  { h₅ : s₀ * s₀ = y } {h₆ : s₀ ≠ s₁ } {hchar : (2 : F) ≠ 0}:
   consistency_check x₀ s₀ s₁ α₀ α₁ β = true := by
   unfold consistency_check
   simp
-  rw [@line_passing_through_the_poly _ _ _ _ f s₀ s₁ α₀ α₁ h₁ h₂]
+  rw [@line_passing_through_the_poly _ _ _ _ f s₀ s₁ α₀ α₁ h₁ h₂ (hchar :=  hchar) ]
   simp only [Polynomial.X_mul_C, Polynomial.eval_add, Polynomial.eval_C, Polynomial.eval_mul,
     Polynomial.eval_X]
   rw [←h₄]
